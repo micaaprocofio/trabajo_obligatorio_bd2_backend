@@ -1,11 +1,13 @@
 import express from 'express';
 import ciudadanoRoutes from './ciudadanoRoutes.js';
 import autoridadRoutes from './autoridadRoutes.js';
+import departamentoRoutes from './departamentoRoutes.js';
 
 const router = express.Router();
 
 router.use('/ciudadanos', ciudadanoRoutes);
 router.use('/autoridades', autoridadRoutes);
+router.use('/geografia', departamentoRoutes);
 
 router.get('/health', (req, res) => {
     res.json({ 
@@ -23,7 +25,8 @@ router.get('/info', (req, res) => {
         description: 'API REST para sistema electoral uruguayo',
         endpoints: {
             ciudadanos: '/api/ciudadanos',
-            autoridades: '/api/autoridades'
+            autoridades: '/api/autoridades',
+            geografia: '/api/geografia',
         },
         database_compatibility: {
             version: '2.0.0',
