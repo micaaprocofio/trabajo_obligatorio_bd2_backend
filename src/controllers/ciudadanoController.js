@@ -30,7 +30,9 @@ export class CiudadanoController {
 
     static async registrarVotante(req, res) {
         try {
-            const { id_ciudadano, id_eleccion } = req.body;
+            // console.log("Recibiendo solicitud para registrar votante");
+            const { id_ciudadano, id_eleccion, credencial_civica, voto_observado} = req.body;
+            // console.log(req.body); 
 
             if (!id_ciudadano || !id_eleccion) {
                 return res.status(400).json({ 
@@ -46,11 +48,12 @@ export class CiudadanoController {
                 });
             }
 
-            const id_registro = await ciudadanoRepository.createVoteRegistration(id_ciudadano, id_eleccion);
+            const id_registro = await ciudadanoRepository.createVoteRegistration(id_ciudadano, id_eleccion, credencial_civica, voto_observado);
             
             res.status(201).json({ 
                 message: 'Votante registrado exitosamente.',
-                id_registro 
+                id_registro,
+                voto_observado
             });
         } catch (error) {
             res.status(500).json({ 

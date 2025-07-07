@@ -6,7 +6,7 @@ dotenv.config();
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'adminadmin',
+    password: process.env.DB_PASSWORD || '11122004',
     database: process.env.DB_NAME || 'sistema_votacion_v3',
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
