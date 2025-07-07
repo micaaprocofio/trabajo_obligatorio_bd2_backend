@@ -12,8 +12,6 @@ router.use('/autoridades', autoridadRoutes);
 router.use('/votacion', votacionRoutes);
 router.use('/geografia', departamentoRoutes);
 router.use('/politicos', politicoRoutes);
-
-
 router.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
