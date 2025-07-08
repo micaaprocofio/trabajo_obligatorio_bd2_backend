@@ -1,4 +1,3 @@
-// Validaciones básicas reutilizables
 export const validateId = (id) => {
     return id && !isNaN(id) && parseInt(id) > 0;
 };
@@ -11,7 +10,6 @@ export const validateCredencialCivica = (credencial) => {
     return credencial && typeof credencial === 'string' && credencial.trim().length > 0;
 };
 
-// Validaciones para los endpoints
 export const validateCiudadanoBusqueda = (req, res, next) => {
     const { credencial } = req.query;
     
@@ -79,11 +77,11 @@ export const validateRegistroVotante = (req, res, next) => {
 };
 
 export const validateVoto = (req, res, next) => {
-    const { id_eleccion, id_establecimiento, id_lista, id_papeleta } = req.body;
+    const { id_eleccion, id_establecimiento, id_lista, voto_en_blanco, voto_anulado } = req.body;
     
-    if (!id_eleccion || !id_establecimiento || (id_lista === undefined && id_papeleta === undefined)) {
+    if (!id_eleccion || !id_establecimiento) {
         return res.status(400).json({ 
-            error: 'Los parámetros "id_eleccion", "id_establecimiento" y ("id_lista" o "id_papeleta") son requeridos.' 
+            error: 'Los parámetros "id_eleccion" y "id_establecimiento" son requeridos.' 
         });
     }
     
@@ -99,15 +97,33 @@ export const validateVoto = (req, res, next) => {
         });
     }
     
+    const opcionesSeleccionadas = [
+        !!id_lista,
+        !!voto_en_blanco,
+        !!voto_anulado
+    ].filter(Boolean).length;
+
+    if (opcionesSeleccionadas !== 1) {
+        return res.status(400).json({ 
+            error: 'Debe seleccionar exactamente una opción: lista, voto en blanco o voto anulado.' 
+        });
+    }
+    
     if (id_lista !== undefined && !validateId(id_lista)) {
         return res.status(400).json({ 
             error: 'El ID de lista debe ser un número válido.' 
         });
     }
     
-    if (id_papeleta !== undefined && !validateId(id_papeleta)) {
+    if (voto_en_blanco !== undefined && typeof voto_en_blanco !== 'boolean') {
         return res.status(400).json({ 
-            error: 'El ID de papeleta debe ser un número válido.' 
+            error: 'El parámetro "voto_en_blanco" debe ser un valor booleano.' 
+        });
+    }
+    
+    if (voto_anulado !== undefined && typeof voto_anulado !== 'boolean') {
+        return res.status(400).json({ 
+            error: 'El parámetro "voto_anulado" debe ser un valor booleano.' 
         });
     }
     

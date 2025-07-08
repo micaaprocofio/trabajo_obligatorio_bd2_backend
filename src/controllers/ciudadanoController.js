@@ -30,13 +30,13 @@ export class CiudadanoController {
 
     static async registrarVotante(req, res) {
         try {
-            // console.log("Recibiendo solicitud para registrar votante");
+            console.log("Recibiendo solicitud para registrar votante");
             const { id_ciudadano, id_eleccion, credencial_civica, voto_observado} = req.body;
-            // console.log(req.body); 
+            console.log("Datos recibidos:", { id_ciudadano, id_eleccion, credencial_civica, voto_observado }); 
 
-            if (!id_ciudadano || !id_eleccion) {
+            if (!id_ciudadano || !id_eleccion || !credencial_civica) {
                 return res.status(400).json({ 
-                    error: 'id_ciudadano e id_eleccion son requeridos.' 
+                    error: 'id_ciudadano, id_eleccion y credencial_civica son requeridos.' 
                 });
             }
 
@@ -48,6 +48,7 @@ export class CiudadanoController {
                 });
             }
 
+            console.log("Llamando a createVoteRegistration con:", { id_ciudadano, id_eleccion, credencial_civica, voto_observado });
             const id_registro = await ciudadanoRepository.createVoteRegistration(id_ciudadano, id_eleccion, credencial_civica, voto_observado);
             
             res.status(201).json({ 
@@ -56,6 +57,7 @@ export class CiudadanoController {
                 voto_observado
             });
         } catch (error) {
+            console.error("Error en registrarVotante:", error);
             res.status(500).json({ 
                 error: 'Error interno del servidor', 
                 details: error.message 

@@ -23,7 +23,6 @@ export class PoliticoRepository {
         return rows[0] || null;
     }
 
-
     async findByCI(CI_Ciudadano) {
         const [rows] = await pool.query(
             `SELECT p.*, c.CI, c.CredencialCivica, c.NombreCompleto, c.FechaNacimiento
@@ -35,9 +34,7 @@ export class PoliticoRepository {
         return rows[0] || null;
     }
 
-
     async create(CI_Ciudadano) {
-
         const [ciudadano] = await pool.query(
             'SELECT CI FROM Ciudadano WHERE CI = ?',
             [CI_Ciudadano]

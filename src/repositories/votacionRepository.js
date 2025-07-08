@@ -2,22 +2,29 @@ import { pool } from '../config/database.js';
 
 export class VotacionRepository {
 
-    async createVote(id_eleccion, id_establecimiento) {
-        const [result] = await pool.query(
-            'INSERT INTO Voto (id_Eleccion, id_Establecimiento) VALUES (?, ?)',
-            [id_eleccion, id_establecimiento]
+    async createVote(id_eleccion, id_establecimiento, voto_en_blanco = false, voto_anulado = false, connection = null) {
+        // Convertir booleanos a 1 o 0 para MySQL
+        const votoEnBlancoValue = voto_en_blanco ? 1 : 0;
+        const votoAnuladoValue = voto_anulado ? 1 : 0;
+        
+        const dbConnection = connection || pool;
+        const [result] = await dbConnection.query(
+            'INSERT INTO Voto (id_Eleccion, id_Establecimiento, VotoEnBlanco, VotoAnulado) VALUES (?, ?, ?, ?)',
+            [id_eleccion, id_establecimiento, votoEnBlancoValue, votoAnuladoValue]
         );
+        
+        console.log('Repository - Voto insertado con ID:', result.insertId);
         return result.insertId;
     }
 
-    async createVoteContent(id_voto, id_lista = null, id_papeleta = null) {
-        const [result] = await pool.query(
+    async createVoteContent(id_voto, id_lista = null, id_papeleta = null, connection = null) {
+        const dbConnection = connection || pool;
+        const [result] = await dbConnection.query(
             'INSERT INTO ContenidoVoto (id_Voto, id_Lista, id_Papeleta) VALUES (?, ?, ?)',
             [id_voto, id_lista, id_papeleta]
         );
         return result.insertId;
     }
-
 
     async findListsByElection(eleccion_id) {
         const [rows] = await pool.query(
@@ -31,23 +38,11 @@ export class VotacionRepository {
         return rows;
     }
 
-    /**
-     * Obtener papeletas especiales (voto en blanco, anulado, observado)
-     * @returns {Array} - Lista de papeletas especiales
-     */
-    async findSpecialBallots() {
-        const [rows] = await pool.query(
-            "SELECT * FROM Papeleta WHERE nombre_opcion IN ('Voto en Blanco', 'Voto Anulado', 'Voto Observado')"
-        );
+    async findAllElections() {
+        const [rows] = await pool.query('SELECT * FROM Eleccion ORDER BY Fecha DESC');
         return rows;
     }
 
-   
-    /**
-     * Obtener una elección por ID
-     * @param {number} id_eleccion - ID de la elección
-     * @returns {Object|null} - Datos de la elección o null si no existe
-     */
     async findElectionById(id_eleccion) {
         const [rows] = await pool.query(
             'SELECT * FROM Eleccion WHERE id_Eleccion = ?',
@@ -56,11 +51,6 @@ export class VotacionRepository {
         return rows[0] || null;
     }
 
-    /**
-     * Obtener resultados de una elección
-     * @param {number} id_eleccion - ID de la elección
-     * @returns {Array} - Resultados ordenados por cantidad de votos
-     */
     async findResultsByElection(id_eleccion) {
         const [rows] = await pool.query(
             `SELECT 
@@ -80,25 +70,54 @@ export class VotacionRepository {
         return rows;
     }
 
-    /**
-     * Obtener votos especiales de una elección
-     * @param {number} id_eleccion - ID de la elección
-     * @returns {Array} - Votos especiales (blancos, anulados, observados)
-     */
     async findSpecialVotes(id_eleccion) {
         const [rows] = await pool.query(
             `SELECT 
-                p.nombre_opcion as tipo_voto,
-                COUNT(cv.id_ContenidoVoto) as cantidad
-             FROM Papeleta p
-             LEFT JOIN ContenidoVoto cv ON p.id_Papeleta = cv.id_Papeleta
-             LEFT JOIN Voto v ON cv.id_Voto = v.id_Voto
-             WHERE v.id_Eleccion = ? OR v.id_Eleccion IS NULL
-             GROUP BY p.id_Papeleta
-             ORDER BY cantidad DESC`,
-            [id_eleccion]
+                'Voto en Blanco' as tipo_voto,
+                COALESCE(SUM(VotoEnBlanco), 0) as cantidad
+             FROM Voto 
+             WHERE id_Eleccion = ?
+             UNION ALL
+             SELECT 
+                'Voto Anulado' as tipo_voto,
+                COALESCE(SUM(VotoAnulado), 0) as cantidad
+             FROM Voto 
+             WHERE id_Eleccion = ?`,
+            [id_eleccion, id_eleccion]
         );
         return rows;
     }
 
+    async findVotingStatistics(id_eleccion) {
+        const [rows] = await pool.query(
+            `SELECT 
+                COUNT(*) as total_votos,
+                SUM(VotoEnBlanco) as votos_blancos,
+                SUM(VotoAnulado) as votos_anulados,
+                COUNT(*) - SUM(VotoEnBlanco) - SUM(VotoAnulado) as votos_validos
+             FROM Voto 
+             WHERE id_Eleccion = ?`,
+            [id_eleccion]
+        );
+        return rows[0];
+    }
+
+    async findVotesByEstablishment(id_establecimiento) {
+        const [rows] = await pool.query(
+            `SELECT 
+                v.*,
+                cv.id_Lista,
+                cv.id_Papeleta,
+                l.Numero as numero_lista,
+                pp.Nombre as partido_nombre
+             FROM Voto v
+             LEFT JOIN ContenidoVoto cv ON v.id_Voto = cv.id_Voto
+             LEFT JOIN Lista l ON cv.id_Lista = l.id_Lista
+             LEFT JOIN PartidoPolitico pp ON l.id_Partido = pp.id_Partido
+             WHERE v.id_Establecimiento = ?
+             ORDER BY v.Fecha DESC, v.Hora DESC`,
+            [id_establecimiento]
+        );
+        return rows;
+    }
 } 
