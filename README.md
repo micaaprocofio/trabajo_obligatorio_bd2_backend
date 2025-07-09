@@ -10,7 +10,7 @@
 
 1. **Clonar el repositorio**
 ```bash
-git clone <repository-url>
+git clone <https://github.com/micaaprocofio/trabajo_obligatorio_bd2_backend.git>
 cd trabajo-obligatorio-bd2-backend
 ```
 
