@@ -51,14 +51,15 @@ export class VotacionController {
             }
 
             await connection.commit();
-            res.status(201).json({ 
-                message: 'Voto emitido exitosamente.', 
-                id_voto 
+
+            res.status(201).json({
+                message: 'Voto emitido exitosamente.',
+                id_voto: id_voto
             });
 
         } catch (error) {
             await connection.rollback();
-            console.error('Controller - Error al emitir voto:', error);
+            console.error('Error al emitir voto:', error);
             res.status(500).json({ 
                 error: 'Error interno del servidor', 
                 details: error.message 
@@ -107,11 +108,11 @@ export class VotacionController {
 
             const eleccion = await votacionRepository.findElectionById(id_eleccion);
             
-            if (eleccion) {
-                res.json(eleccion);
-            } else {
-                res.status(404).json({ error: 'Elección no encontrada.' });
+            if (!eleccion) {
+                return res.status(404).json({ error: 'Elección no encontrada.' });
             }
+
+            res.json(eleccion);
         } catch (error) {
             res.status(500).json({ error: 'Error interno del servidor', details: error.message });
         }
@@ -177,4 +178,140 @@ export class VotacionController {
         }
     }
 
+    static async obtenerEstadisticasPorDepartamento(req, res) {
+        try {
+            const { id_eleccion } = req.params;
+            
+            if (!id_eleccion) {
+                return res.status(400).json({ error: 'El parámetro "id_eleccion" es requerido.' });
+            }
+
+            const estadisticas = await votacionRepository.findStatisticsByDepartment(id_eleccion);
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                total_departamentos: estadisticas.length,
+                estadisticas_por_departamento: estadisticas
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
+
+    static async obtenerEstadisticasPorPartido(req, res) {
+        try {
+            const { id_eleccion } = req.params;
+            
+            if (!id_eleccion) {
+                return res.status(400).json({ error: 'El parámetro "id_eleccion" es requerido.' });
+            }
+
+            const estadisticas = await votacionRepository.findStatisticsByPoliticalParty(id_eleccion);
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                total_partidos: estadisticas.length,
+                estadisticas_por_partido: estadisticas
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
+
+    static async obtenerEstadisticasDetalladasPorDepartamento(req, res) {
+        try {
+            const { id_eleccion, id_departamento } = req.params;
+            
+            if (!id_eleccion || !id_departamento) {
+                return res.status(400).json({ 
+                    error: 'Los parámetros "id_eleccion" e "id_departamento" son requeridos.' 
+                });
+            }
+
+            const estadisticas = await votacionRepository.findDetailedStatisticsByDepartment(id_eleccion, id_departamento);
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                id_departamento: parseInt(id_departamento),
+                total_establecimientos: estadisticas.length,
+                estadisticas_detalladas: estadisticas
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
+
+    static async obtenerVotosPorDepartamentoYPartido(req, res) {
+        try {
+            const { id_eleccion } = req.params;
+            
+            if (!id_eleccion) {
+                return res.status(400).json({ error: 'El parámetro "id_eleccion" es requerido.' });
+            }
+
+            const votos = await votacionRepository.findVotesByDepartmentAndParty(id_eleccion);
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                total_registros: votos.length,
+                votos_por_departamento_y_partido: votos
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
+
+    static async obtenerRankingPartidosPorDepartamento(req, res) {
+        try {
+            const { id_eleccion, id_departamento } = req.params;
+            
+            if (!id_eleccion || !id_departamento) {
+                return res.status(400).json({ 
+                    error: 'Los parámetros "id_eleccion" e "id_departamento" son requeridos.' 
+                });
+            }
+
+            const ranking = await votacionRepository.findPartyRankingByDepartment(id_eleccion, id_departamento);
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                id_departamento: parseInt(id_departamento),
+                total_partidos: ranking.length,
+                ranking_partidos: ranking
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
+
+    static async obtenerResumenEstadisticasCompleto(req, res) {
+        try {
+            const { id_eleccion } = req.params;
+            
+            if (!id_eleccion) {
+                return res.status(400).json({ error: 'El parámetro "id_eleccion" es requerido.' });
+            }
+
+            const [
+                estadisticasGenerales,
+                estadisticasDepartamentos,
+                estadisticasPartidos,
+                votosDepartamentoPartido,
+                votosEspeciales
+            ] = await Promise.all([
+                votacionRepository.findVotingStatistics(id_eleccion),
+                votacionRepository.findStatisticsByDepartment(id_eleccion),
+                votacionRepository.findStatisticsByPoliticalParty(id_eleccion),
+                votacionRepository.findVotesByDepartmentAndParty(id_eleccion),
+                votacionRepository.findSpecialVotes(id_eleccion)
+            ]);
+
+            res.json({
+                id_eleccion: parseInt(id_eleccion),
+                resumen_general: estadisticasGenerales,
+                votos_especiales: votosEspeciales,
+                estadisticas_departamentos: estadisticasDepartamentos,
+                estadisticas_partidos: estadisticasPartidos,
+                votos_departamento_partido: votosDepartamentoPartido,
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    }
 } 
