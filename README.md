@@ -27,11 +27,7 @@ cp .env.example .env
 
 4. **Configurar la base de datos**
 ```bash
-# Ejecutar el script de creación de BD
-mysql -u root -p < ../trabajo-obligatorio-bd2-mer/01_create_database.sql
-
-# Ejecutar datos de prueba
-mysql -u root -p < ../trabajo-obligatorio-bd2-mer/02_insert_sample_data.sql
+# Ejecutar el script de creación de BD (se encuentra en el informe)
 ```
 
 5. **Iniciar el servidor**
